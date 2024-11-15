@@ -6,6 +6,8 @@ from collections import Counter
 from tqdm import tqdm
 
 Corpus = List[str]
+START = "<s>"
+END = "</s>"
 
 
 def corpus_from_file(file_path: str) -> Corpus:
@@ -16,8 +18,7 @@ def corpus_from_file(file_path: str) -> Corpus:
 class Ngram:
     def __init__(self, n: int):
         self.n = n
-        # Matriz de MxP donde M=numero de (N-1)-gramas del corpus
-        # y P=size del vocabulario
+        # dict(dict())
         self.frequency_table = None
         self.vocav = set()
 
@@ -86,23 +87,32 @@ class Ngram:
     def tokenize(self, text):
         text = text.lower()
         text = text.split(" ")
-        text = ["<s>"] * (self.n - 1) + text + ["</s>"]
+        text = [START] * (self.n - 1) + text + [END]
         return text
 
-    def predict(self, context: Tuple[str]) -> str:
+    def predict(self, context: str) -> str:
         # return the token with highest probability given n-1 tokens
 
         tokenized_context = self.tokenize(context)[:-1]
-        print(tokenized_context)
         n_minus_1_gram = tuple(tokenized_context[-(self.n - 1):])
-
-        print(n_minus_1_gram)
-
         if n_minus_1_gram not in self.frequency_table:
             return None
 
         next_token = max(self.frequency_table[n_minus_1_gram], key=self.frequency_table[n_minus_1_gram].get)
         return next_token
+
+    def generate(self, context: Tuple[str]="") -> str:
+        max_length = 30
+        answer = ""
+        next_word = ""
+        while(next_word != END and max_length>0):
+            next_word = self.predict(context)
+            answer += f" {next_word}"
+            context = context[1:] + next_word
+            max_length -= 1
+
+        return answer[1:-len(END)]
+
 
     def perplexity(self, text: Corpus) -> float:
         # Calculate the perplexity of the text given the n-gram model.

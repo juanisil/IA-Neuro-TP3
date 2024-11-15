@@ -21,43 +21,59 @@ class Ngram:
         self.frequency_table = None
         self.vocav = set()
 
-    def fit(self, corpus: Corpus):
+    def fit(self, corpus: Corpus, verbose=False):
         all_n_grams = []
 
-        for text in tqdm(corpus):
+        iterator = corpus
+        if verbose:
+            iterator = tqdm(iterator, total=len(corpus))
+            print("Tokenizing corpus")
+        for text in iterator:
             tokens = self.tokenize(text)
-            n_grams = self.extract_ngrams(tokens)
+            n_grams = self.extract_ngrams(tokens, verbose)
             all_n_grams.append(n_grams)
 
         # reemplazar por np.array
         self.frequency_table = None
-        self.create_frequency_table(all_n_grams)
+        self.create_frequency_table(all_n_grams, verbose)
 
-    def extract_ngrams(self, tokens):
+    def extract_ngrams(self, tokens, verbose=False):
         # Extract all the self.n-grams of the text.
         n_grams = []
-        for i in range(len(tokens) - self.n + 1):
+        iterator = range(len(tokens) - self.n + 1)
+        if verbose:
+            iterator = tqdm(iterator, total=len(tokens) - self.n + 1)
+            print("Extracting n-grams")
+        for i in iterator:
             n_grams.append(tuple(tokens[i:i + self.n]))
 
         return n_grams
 
-    def create_frequency_table(self, n_grams):
+    def create_frequency_table(self, n_grams, verbose=False):
         # Create a frequency table from the n-grams
 
-        print("Creating frequency table")
-        print("Flattening n-grams")
+        if verbose:
+            print("Creating frequency table")
+            print("Flattening n-grams")
         n_grams = [item for sublist in n_grams for item in sublist]
-        print("Creating vocabulary")
+        if verbose:
+            print("Creating vocabulary")
         self.vocav = set(n_grams)
-        print(f"Vocabulary size: {len(self.vocav)}")
+        if verbose:
+            print(f"Vocabulary size: {len(self.vocav)}")
         n_gram_counts = Counter(n_grams)
-        print(f"Number of n-grams: {len(n_gram_counts)}")
+        if verbose:
+            print(f"Number of n-grams: {len(n_gram_counts)}")
 
         frequency_table = {}
 
-        print("Creating frequency table")
+        if verbose:
+            print("Creating frequency table")
 
-        for i, n_gram in tqdm(enumerate(n_grams)):
+        freq_t_iterator = enumerate(n_grams)
+        if verbose:
+            freq_t_iterator = tqdm(freq_t_iterator, total=len(n_grams))
+        for i, n_gram in freq_t_iterator:
             if n_gram[:-1] not in frequency_table:
                 frequency_table[n_gram[:-1]] = {}
             if n_gram[-1] not in frequency_table[n_gram[:-1]]:

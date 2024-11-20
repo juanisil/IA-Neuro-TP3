@@ -102,7 +102,10 @@ class Ngram:
     def generate(self, context: Tuple[str]="", temperature: float=0.9) -> str:
         max_length = 30
         answer = ""
-        context = self.tokenize(context)[:-1]
+        if context == "":
+            context = [START] * (self.n - 1)
+        else:
+            context = self.tokenize(context)[:-1]
         next_word = ""
         while(next_word != END and max_length>0):
             logits = self.predict(context)

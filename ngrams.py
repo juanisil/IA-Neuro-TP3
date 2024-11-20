@@ -34,7 +34,6 @@ class Ngram:
             n_grams = self.extract_ngrams(tokens, verbose)
             all_n_grams.append(n_grams)
 
-        # reemplazar por np.array
         self.frequency_table = None
         self.create_frequency_table(all_n_grams, verbose)
 
@@ -90,28 +89,43 @@ class Ngram:
         text = [START] * (self.n - 1) + text + [END]
         return text
 
-    def predict(self, context: str) -> str:
-        # return the token with highest probability given n-1 tokens
-
-        tokenized_context = self.tokenize(context)[:-1]
+    def predict(self, tokenized_context: str) -> str:
+        # return the tokens distribution given the context
+        # tokenized_context = self.tokenize(context)[:-1]
         n_minus_1_gram = tuple(tokenized_context[-(self.n - 1):])
         if n_minus_1_gram not in self.frequency_table:
             return None
 
-        next_token = max(self.frequency_table[n_minus_1_gram], key=self.frequency_table[n_minus_1_gram].get)
-        return next_token
+        logits = self.frequency_table[n_minus_1_gram]
+        return logits
 
-    def generate(self, context: Tuple[str]="") -> str:
+    def generate(self, context: Tuple[str]="", temperature: float=0.9) -> str:
         max_length = 30
         answer = ""
+        context = self.tokenize(context)[:-1]
         next_word = ""
         while(next_word != END and max_length>0):
-            next_word = self.predict(context)
+            logits = self.predict(context)
+            if logits is None:
+                break
+            logits = {k: v for k, v in logits.items() if v > 0}
+            logits = {k: v ** (1 / temperature) for k, v in logits.items()}
+            logits = {k: v / sum(logits.values()) for k, v in logits.items()}
+            next_word = np.random.choice(list(logits.keys()), p=list(logits.values()))
             answer += f" {next_word}"
-            context = context[1:] + next_word
+            context = context[1:] + [next_word,]
             max_length -= 1
 
         return answer[1:-len(END)]
+
+        # next_word = ""
+        # while(next_word != END and max_length>0):
+        #     next_word = self.predict(context)
+        #     answer += f" {next_word}"
+        #     context = context[1:] + next_word
+        #     max_length -= 1
+
+        # return answer[1:-len(END)]
 
 
     def perplexity(self, text: Corpus) -> float:

@@ -130,9 +130,8 @@ class Ngram:
         return logits
 
     def generate(
-        self, context: Tuple[str] = "", temperature: float = 0.9
+        self, context: Tuple[str] = "", temperature: float = 0.9, max_length=30
     ) -> str:
-        max_length = 30
         answer = ""
         if context == "":
             context = [SENTENCE_START] * (self.n - 1)
@@ -176,18 +175,32 @@ class Ngram:
 
             max_sentences -= 1
 
+        if SCENE_END not in scene:
+            scene += SCENE_END
         return scene
 
+    def generate_title(self, temperature: float = 0.9) -> str:
+        title = self.generate("The One with the", temperature, 4)
+        return EPISODE_START + "The One with the" + title
+
     def generate_episode(self, context: Tuple[str] = "", temperature: float = 0.9, max_scenes=10, max_lines_per_scene=10) -> str:
-        episode = context
-        while EPISODE_END not in episode and max_scenes > 0: 
+        episode = self.generate_title(temperature)
+        context = "<s><l><l><l>[Scene: " + context
+        i = 0
+
+        while EPISODE_END not in episode and max_scenes > 0:
+            if episode[-2:] == SCENE_END:
+                context += "<s><l><l><l>"
             sentence = self.generate_scene(context, temperature, max_lines_per_scene)
+            if i == 0:
+                sentence = sentence.replace(SENTENCE_START, "\n" + SENTENCE_START)
             if EPISODE_START in sentence:
                 break
             episode += sentence
             context = sentence[-2:]
 
             max_scenes -= 1
+            i += 1
 
         return episode
 
@@ -214,9 +227,49 @@ class Ngram:
         perplexity = np.exp(-exponent / len(text))
         return perplexity
 
+    def precision(self, reference: Corpus, candidate: Corpus) -> float:
+        # Calculate the precision of the candidate corpus given the reference corpus.
+        correct = 0
+        total = 0
+
+        for ref, cand in zip(reference, candidate):
+            ref_tokens = word_tokenize(ref)
+            cand_tokens = word_tokenize(cand)
+
+            for token in cand_tokens:
+                if token in ref_tokens:
+                    correct += 1
+
+            total += len(cand_tokens)
+
+        return correct / total
+
     def bleu_score(self, reference: Corpus, candidate: Corpus) -> float:
         # Calculate the BLEU score between the reference and candidate corpora.
-        pass
+        score = 0
+
+        for ref, cand in zip(reference, candidate):
+            ref_tokens = word_tokenize(ref)
+            cand_tokens = word_tokenize(cand)
+
+            for i in range(1, 5):
+                ref_ngrams = self.extract_ngrams(ref_tokens, i)
+                cand_ngrams = self.extract_ngrams(cand_tokens, i)
+
+                ref_ngrams = Counter(ref_ngrams)
+                cand_ngrams = Counter(cand_ngrams)
+
+                correct = 0
+                total = 0
+
+                for ngram in cand_ngrams:
+                    correct += min(cand_ngrams[ngram], ref_ngrams[ngram])
+
+                total += len(cand_ngrams)
+
+                score += correct / total
+
+        score /= len(reference)
 
 
 if __name__ == "__main__":

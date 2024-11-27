@@ -22,19 +22,19 @@ Este trabajo implementa un modelo de lenguaje basado en n-gramas, entrenado con 
 
 ## Corpus y Preprocesamiento
 
-El corpus utilizado consiste en scripts de la serie Friends, específicamente diálogos de múltiples temporadas. Para el procesamiento del corpus, implementamos las siguientes etapas:
+1. Conseguir y limpiar un corpus de textos
 
-### Carga del Corpus
+Para el trabajo se eligieron dos corpus, ambos de series Sitcoms. El primero es el corpus de la serie Seinfeld (https://github.com/luonglearnstocode/Seinfeld-text-corpus), y el segundo es el corpus de la serie Friends (https://www.kaggle.com/datasets/blessondensil294/friends-tv-series-screenplay-script). Ambos corpus fueron limpiados de caracteres especiales y se les aplicó un preprocesamiento específico para scripts, que incluye:
 
-El corpus se carga desde archivos de texto que contienen los scripts de Friends:
+### Corpus de Seinfeld
 
-```python
-def corpus_from_file(file_path: str) -> Corpus:
-    with open(file_path, "r") as file:
-        return file.readlines()
+El corpus de Seinfeld contiene los guiones de los episodios de la serie. Es un solo archivo de texto que contiene los diálogos de todos los episodios, alrededor de 65.000 líneas. Aunque contiene algunas separaciones por episodio, no es un corpus estructurado jerárquicamente.
 
-corpus = corpus_from_file("friends_corpus.txt")
-```
+Para la experimentación del punto 3.1 se requirió mas textos para n-gramas de orden superior, por lo que se decidió utilizar el corpus de Friends.
+
+### Corpus de Friends
+
+El corpus de Friends contiene los guiones de todos los episodios de la serie. Por cada episodio de cada temporada se contiene un archivo de texto con la estructura de guión de la serie. Cada archivo contiene los diálogos de los personajes, separados por líneas y con marcadores de inicio y fin de episodio, escena y línea de diálogo.
 
 ### Preprocesamiento y Tokenización
 
@@ -45,51 +45,7 @@ El modelo implementa un preprocesamiento específico para scripts, que incluye:
    - `<s>`, `</s>`: Marcadores de inicio y fin de escena
    - `<l>`, `</l>`: Marcadores de líneas de diálogo
 
-2. **Estructura del Script**:
-   - Detección automática de escenas (`[Scene...]`)
-   - Identificación de finales de episodio (`End`)
-   - Manejo de líneas de diálogo
-
-```python
-def fit(self, corpus: Corpus, verbose=False, type="text"):
-    """
-    Procesa el corpus y extrae n-gramas manteniendo la estructura del script
-    """
-    all_n_grams = []
-    all_tokens = []
-
-    # Iteramos sobre el corpus
-    scene_started = False
-    episode_started = False
-    
-    for text in corpus:
-        if text == "\n":
-            continue
-            
-        # Tokenizamos el texto
-        tokens = self.tokenize(text)
-        
-        # Manejamos estructura del script
-        if not episode_started:
-            tokens = [EPISODE_START] + tokens
-            episode_started = True
-            
-        if ("[scene" in text) or ("[Scene" in text):
-            if scene_started:
-                tokens = tokens + [SCENE_END]
-            tokens = [SCENE_START] + tokens
-            scene_started = True
-            
-        if "\nEnd\n" in text:
-            tokens = tokens + [SCENE_END, EPISODE_END]
-            scene_started = False
-            episode_started = False
-
-        # Extraemos n-gramas
-        n_grams = self.extract_ngrams(tokens)
-        all_n_grams.append(n_grams)
-        all_tokens.append(tokens)
-```
+En el caso del corpus de Seinfeld, solo se utilizó el marcador de fin de línea de diálogo `</l>` por cada linea del corpus.
 
 Este preprocesamiento nos permite:
 - Mantener la estructura jerárquica del script (episodios → escenas → diálogos)
@@ -97,10 +53,6 @@ Este preprocesamiento nos permite:
 - Capturar patrones de inicio y fin de escenas/episodios
 - Preservar el contexto conversacional entre personajes
 
-Los tokens especiales ayudan al modelo a aprender:
-- Transiciones naturales entre escenas
-- Estructura de los diálogos
-- Patrones de interacción entre personajes
 
 ## Implementación del Modelo N-gramas
 
@@ -110,92 +62,13 @@ El modelo implementa tres funcionalidades principales:
 
 El proceso de construcción del modelo incluye:
 
-```python
-def extract_ngrams(self, tokens, verbose=False):
-    """Extrae todos los n-gramas del texto tokenizado"""
-    n_grams = []
-    for i in range(len(tokens) - self.n + 1):
-        n_grams.append(tuple(tokens[i : i + self.n]))
-    return n_grams
-
-def create_frequency_table(self, n_grams, verbose=False):
-    """Crea tabla de frecuencias a partir de los n-gramas"""
-    # Aplanamos la lista de n-gramas
-    n_grams = [item for sublist in n_grams for item in sublist]
-    
-    # Creamos vocabulario y contamos frecuencias
-    self.vocav = set(n_grams)
-    n_gram_counts = Counter(n_grams)
-    
-    # Construimos tabla de frecuencias
-    frequency_table = {}
-    for n_gram in n_grams:
-        if n_gram[:-1] not in frequency_table:
-            frequency_table[n_gram[:-1]] = {}
-        if n_gram[-1] not in frequency_table[n_gram[:-1]]:
-            frequency_table[n_gram[:-1]][n_gram[-1]] = 0
-        frequency_table[n_gram[:-1]][n_gram[-1]] += 1
-```
-
 ### 2. Predicción y Generación
 
 El modelo puede generar texto a diferentes niveles:
 
-#### a) Generación de líneas individuales
-```python
-def generate(self, context: Tuple[str] = "", temperature: float = 0.9) -> str:
-    """Genera una línea de texto dado un contexto inicial"""
-    max_length = 30
-    if context == "":
-        context = [SENTENCE_START] * (self.n - 1)
-    else:
-        context = self.tokenize(context)[:-1]
-        
-    while next_word != SENTENCE_END and max_length > 0:
-        # Obtener distribución de probabilidad
-        logits = self.predict(context)
-        if logits is None:
-            break
-            
-        # Aplicar temperatura para controlar aleatoriedad
-        logits = {k: v ** (1 / temperature) for k, v in logits.items() if v > 0}
-        logits = {k: v / sum(logits.values()) for k, v in logits.items()}
-        
-        # Seleccionar siguiente palabra
-        next_word = np.random.choice(list(logits.keys()), p=list(logits.values()))
-        answer += f" {next_word}"
-        context = context[1:] + [next_word]
-        max_length -= 1
-```
-
-#### b) Generación de escenas
-```python
-def generate_scene(self, context: str = "", temperature: float = 0.9, max_sentences=10) -> str:
-    """Genera una escena completa manteniendo coherencia entre líneas"""
-    scene = context
-    while SCENE_END not in scene and max_sentences > 0:
-        sentence = self.generate(context, temperature)
-        if SCENE_START in sentence:
-            break
-        scene += sentence
-        context = sentence[-2:]
-        max_sentences -= 1
-```
-
-#### c) Generación de episodios completos
-```python
-def generate_episode(self, context: str = "", temperature: float = 0.9, 
-                    max_scenes=10, max_lines_per_scene=10) -> str:
-    """Genera un episodio completo con múltiples escenas"""
-    episode = context
-    while EPISODE_END not in episode and max_scenes > 0:
-        sentence = self.generate_scene(context, temperature, max_lines_per_scene)
-        if EPISODE_START in sentence:
-            break
-        episode += sentence
-        context = sentence[-2:]
-        max_scenes -= 1
-```
+- a) Generación de líneas individuales
+- b) Generación de escenas
+- c) Generación de episodios completos
 
 ### 3. Control de Generación
 
@@ -214,7 +87,7 @@ El modelo incluye varios parámetros para controlar la generación:
 
 ```python
 # Inicializar y entrenar modelo
-model = Ngram(n=3)  # Trigrama
+model = Ngram(n=3)
 model.fit(train_corpus)
 
 # Generar una línea de diálogo
@@ -228,7 +101,7 @@ new_scene = model.generate_scene(
 )
 
 # Generar un episodio completo
-title = "The One with the Gun"
+title = "The One with the "
 episode = model.generate_episode(
     context=title, 
     temperature=0.4, 
@@ -236,35 +109,105 @@ episode = model.generate_episode(
 )
 ```
 
-# Resultados y Análisis
+# 3. Resultados y Análisis
 
 ## Calidad de Textos Generados
 
-Analizamos cómo varía la calidad de los textos generados en función de:
+Analizamos cómo varía la calidad de los textos generados en función del valor de $n$.
 
-### Valor de n
+Por un lado podemos hacer un análisis cualitativo de los textos generados. En general, observamos que para los valores de:
+
 - n=1: Palabras aleatorias sin contexto
 - n=2: Pares coherentes pero sin estructura global
 - n=3-4: Mejor balance entre coherencia local y estructura
 - n>4: Sobreajuste, repite fragmentos exactos
 
-### Cantidad de datos de entrenamiento
-- Impacto en el vocabulario
-- Mejora en la fluidez
-- Límites de generalización
+En un análisis cuantitativo, podemos medir la calidad de los textos generados con métricas automáticas como Perplexity o BLEU.
 
-### Ejemplos de Textos Generados
+![Perplexity vs. n - Seinfeld](perplexity_vs_n_seinfeld.png)
+![Perplexity vs. n - Friends](perplexity_vs_n_friends.png)
 
-```python
-for n in [2,3,4]:
-    print(f"n={n}:")
-    print(model.generate())
+En el gráfico se observa que a medida que aumenta el valor de $n$, la Perplexity crece también. Esto se debe a que el modelo se ajusta demasiado a los datos de entrenamiento, perdiendo capacidad de generalización.
+
+### Ejemplos de Textos Generados - Seinfeld
+
+Para diferentes temperaturas generamos textos que comiencen con "jerry" (Seinfeld) para comparar la calidad de los textos generados (n=5).
+
+#### **T=0.3**: Texto muy determinístico en el comienzo, repite fragmentos exactos. Fijación en la expresión "i don't know".
+
+-  i don't know what to do so i put it in a garage.
+-  i don't know.
+-  you know i don't get you seinfeld. you want something one day. the next day you don't have to do this! this guy is waiting in my house.
+-  i don't know what to do. so i just stood there like - remember how quayle looked when benson gave him that kennedy line? that's what i looked like.
+-  i don't know.
+
+#### **T=0.5**: Texto más variado, pero sigue repitiendo fragmentos como "i don't".
+
+-  george, here's the book. don't let anybody see it. don't let anything happen to it.
+-  i don't understand it. i haven't read the manual. ooh!" you get my drift.
+-  i don't know and i didn't want to talk to you. goodbye.
+-  what's the matter?
+-  oh, i don't know. i can't think of any solution, unless of course they should meet with some unfortunate accident. what do you think of this shirt?
+
+#### **T=1.0**: Texto más aleatorio
+
+-  all right, look, we're late. thank you very much...
+-  ah, you're better off. now you can just let it go.
+-  you think you can handle that, numb nuts?
+-  ah..........
+-  would you?
+
+### Ejemplos de Textos Generados - Friends
+
+Cuando repetimos el mismo experimento con el corpus de Friends, observamos resultados similares.
+
+#### **T=0.3**: Texto muy determinístico, repite fragmentos exactos, exactamente igual que en Seinfeld dos veces figura "i don't know". Otras dos veces figura "oh my god".
+
+-  well, i was hoping after tonight that maybe i could you know…
+-  i don't know, but uh, did you guys wrestle?
+-  oh my god, you’re right! i am too late; they’re sitting on the couch and ross is sitting on the couch and ross is sitting on the couch a
+-  oh my god, it's all so elegant! when's the dirty stuff starting?
+-  i don't know, but i.. look, even if she shoots me down, at least i won't spend the rest of my life with you.
+
+#### **T=0.5**: Texto más variado nuevamente, en este caso pasa a repetir "all right".
+-  all right.
+-  all right, i guess i'll have my stuff packed up.
+-  well, i was thinking that maybe we could go on a date with jean-claude van damme. can you beat up that guy?
+-  so you're ruling out surrogacy?
+-  yeah, i know exactly what i’m talking about.
+
+#### **T=1.0**: Texto más aleatorio
+-  wow, that’s in like 20 minutes. you’d better get dressed.
+-  it was, yeah. i kind of don't want it to be amazing.
+-  yeah. listen uh, i’d prefer it if you didn’t call me joey. since i don’t know anyone here, i thought it’d be cool to try out a cool work nick
+-  you call that delicious?
+-  uh well yeah, that was the plan, but by the time i was 31!
+
+En el caso del corpus de Friends, lo que podemos realizar es escribir escenas completas.
+
+### Ejemplo de Escena Generada - Friends
+
+Podemos comenzar una escena por ejemplo con "[Scene: Central", y el modelo completará la escena.
+
+```
+    [Scene: Central perk, chandler and monica are sitting on the couch as rachel enters.]
+    chandler: no, you keep the old ones in the back, that is so sweet! oh, i can’t believe it! make the presents! make the presents!
+    rachel: you know what i don't have?
+    monica: the fuzzy little mints at the bottom of the page. then again, maybe it isn't and it's just ridiculous, and it's like, it's like, all of a sudden my roommate, rachel.
+    rachel: oh my god! that is our friend! (monica covers her eyes in shock.)
+    monica: oh my god, what the hell is in that first kiss.
+    rachel: oh my god.
+    joey: oh yeah, no no no...that's great!
+    ross: well, i guess i could break down your door.
 ```
 
-## Similitud con Textos Originales
+A pesar de tener algo de "forma", las oraciones son generadas independiente por lo que no tienen sentido en conjunto.
 
+### Ejemplo de Episodio Completo Generado - Friends
 
-## Análisis del Grado de Creatividad e Inteligencia
+Adjuntamos en el anexo un ejemplo de episodio completo generado por el modelo, comenzando con el título "The One with the". Al igual que lo observado en las escenas, las líneas de diálogo generadas no tienen coherencia entre sí, y la trama del episodio entre las escenas es incoherente también.
+
+## 3.3 Análisis del Grado de Creatividad e Inteligencia
 
 ### Grado de Creatividad
 
@@ -284,7 +227,7 @@ No puede generar ideas o conceptos verdaderamente nuevos, ni crear tramas origin
 La "inteligencia" del modelo se manifiesta de manera desigual en diferentes aspectos:
 
 1. **Inteligencia Lingüística**
-Demuestra competencia en el manejo de la estructura básica del lenguaje y es particularmente efectivo en reproducir el estilo conversacional característico de Friends. Sin embargo, esta competencia es superficial: el modelo no comprende realmente el significado de lo que genera, como se evidencia en las frecuentes contradicciones semánticas y la falta de coherencia en conversaciones extensas. En este ámbito podriamos decir que el modelo alcanza un grado medio-bajo. 
+Demuestra competencia en el manejo de la estructura básica del lenguaje y es particularmente efectivo en reproducir el estilo conversacional característico de Friends. Sin embargo, esta competencia es superficial: el modelo no comprende realmente el significado de lo que genera, como se evidencia en las frecuentes contradicciones semánticas y la falta de coherencia en conversaciones extensas. En este ámbito podríamos decir que el modelo alcanza un grado medio-bajo. 
 
 2. **Inteligencia Narrativa**
 No puede mantener coherencia en historias largas ni establecer relaciones causales lógicas entre eventos. Un ejemplo claro es cómo el modelo puede comenzar una escena con una premisa específica pero rápidamente pierde el hilo narrativo, derivando en diálogos inconexos o contradictorios. La incapacidad de planificar el desarrollo de una trama demuestra las limitaciones fundamentales del enfoque basado en n-gramas. Para este caso el modelo tiene un grado muy bajo.

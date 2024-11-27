@@ -113,7 +113,7 @@ episode = model.generate_episode(
 
 ## Calidad de Textos Generados
 
-Analizamos cómo varía la calidad de los textos generados en función del valor de $n$.
+Analizamos cómo varía la calidad de los textos generados en función del valor de $n$ y la cantidad de datos de entrenamiento.
 
 Por un lado podemos hacer un análisis cualitativo de los textos generados. En general, observamos que para los valores de:
 
@@ -124,8 +124,10 @@ Por un lado podemos hacer un análisis cualitativo de los textos generados. En g
 
 En un análisis cuantitativo, podemos medir la calidad de los textos generados con métricas automáticas como Perplexity o BLEU.
 
-![Perplexity vs. n - Seinfeld](perplexity_vs_n_seinfeld.png)
-![Perplexity vs. n - Friends](perplexity_vs_n_friends.png)
+![Perplexity vs. n - Seinfeld](figures/perplexity_vs_n_seinfeld.png)
+![Perplexity vs. n - Friends](figures/perplexity_vs_n_friends.png)
+![Perplexity vs. Training Size - Seinfeld](figures/perplexity_vs_train_size_seinfeld.png)
+![Perplexity vs. Training Size - Friends](figures/perplexity_vs_train_size_friends.png)
 
 En el gráfico se observa que a medida que aumenta el valor de $n$, la Perplexity crece también. Esto se debe a que el modelo se ajusta demasiado a los datos de entrenamiento, perdiendo capacidad de generalización.
 

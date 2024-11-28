@@ -1,8 +1,10 @@
-import numpy as np
-import pandas as pd
-from typing import List, Tuple
-from nltk import word_tokenize
+'''
+N-gram model for text generation
+'''
+
 from collections import Counter
+from typing import List, Tuple
+import numpy as np
 from tqdm import tqdm
 
 Corpus = List[str]
@@ -24,7 +26,6 @@ class Ngram:
         self.n = n
         # dict(dict())
         self.frequency_table = None
-        self.vocav = set()
 
     def fit(self, corpus: Corpus, verbose=False, type="text"):
         """
@@ -37,8 +38,8 @@ class Ngram:
 
         iterator = corpus
         if verbose:
-            iterator = tqdm(iterator, total=len(corpus))
             print("Tokenizing corpus")
+            iterator = tqdm(iterator, total=len(corpus))
         scene_started = False
         episode_started = False
         for text in iterator:
@@ -68,29 +69,36 @@ class Ngram:
         return all_tokens
 
     def extract_ngrams(self, tokens, verbose=False):
-        # Extract all the self.n-grams of the text.
+        '''
+        Extracts n-grams from a list of tokens
+
+        tokens: list of tokens
+        verbose: print progress
+
+        returns: list of n-grams 
+        '''
         n_grams = []
         iterator = range(len(tokens) - self.n + 1)
-        if verbose:
-            iterator = tqdm(iterator, total=len(tokens) - self.n + 1)
-            print("Extracting n-grams")
         for i in iterator:
             n_grams.append(tuple(tokens[i : i + self.n]))
 
         return n_grams
 
     def create_frequency_table(self, n_grams, verbose=False):
-        # Create a frequency table from the n-grams
+        '''
+        Creates the frequency table for the n-grams
+
+        n_grams: list of n-grams
+        verbose: print progres
+
+        returns: None
+        '''
 
         if verbose:
-            print("Creating frequency table")
             print("Flattening n-grams")
         n_grams = [item for sublist in n_grams for item in sublist]
         if verbose:
             print("Creating vocabulary")
-        self.vocav = set(n_grams)
-        if verbose:
-            print(f"Vocabulary size: {len(self.vocav)}")
         n_gram_counts = Counter(n_grams)
         if verbose:
             print(f"Number of n-grams: {len(n_gram_counts)}")
@@ -114,12 +122,26 @@ class Ngram:
         self.frequency_table = frequency_table
 
     def tokenize(self, text):
+        '''
+        Tokenizes a text
+
+        text: text to tokenize
+
+        returns: list of tokens
+        '''
         text = text.lower()
         text = text.split(" ")
         text = [SENTENCE_START] * (self.n - 1) + text + [SENTENCE_END]
         return text
 
     def predict(self, tokenized_context: str) -> str:
+        '''
+        Predicts the next token given a context
+
+        tokenized_context: list of tokens
+
+        returns: dict of tokens and their probabilities
+        '''
         # return the tokens distribution given the context
         # tokenized_context = self.tokenize(context)[:-1]
         n_minus_1_gram = tuple(tokenized_context[-(self.n - 1):])
@@ -132,6 +154,15 @@ class Ngram:
     def generate(
         self, context: Tuple[str] = "", temperature: float = 0.9, max_length=30
     ) -> str:
+        '''
+        Generates a sentence given a context
+
+        context: list of tokens
+        temperature: temperature for the softmax
+        max_length: maximum length of the sentence
+
+        returns: generated sentence
+        '''
         answer = ""
         if context == "":
             context = [SENTENCE_START] * (self.n - 1)
@@ -153,16 +184,7 @@ class Ngram:
             ]
             max_length -= 1
 
-        return answer
-
-        # next_word = ""
-        # while(next_word != END and max_length>0):
-        #     next_word = self.predict(context)
-        #     answer += f" {next_word}"
-        #     context = context[1:] + next_word
-        #     max_length -= 1
-
-        # return answer[1:-len(END)]
+        return self.clean_text(answer)
 
     def generate_scene(self, context: Tuple[str] = "", temperature: float = 0.9, max_sentences=10) -> str:
         scene = context
@@ -177,7 +199,7 @@ class Ngram:
 
         if SCENE_END not in scene:
             scene += SCENE_END
-        return scene
+        return self.clean_text(scene)
 
     def generate_title(self, temperature: float = 0.9) -> str:
         title = self.generate("The One with the", temperature, 4)
@@ -202,7 +224,13 @@ class Ngram:
             max_scenes -= 1
             i += 1
 
-        return episode
+        return self.clean_text(episode)
+    
+    def clean_text(self, text: str) -> str:
+        tokens = [SENTENCE_START, SENTENCE_END, SCENE_START, SCENE_END, EPISODE_START, EPISODE_END]
+        for token in tokens:
+            text = text.replace(token, "")
+        return text
 
     def perplexity(self, text: Corpus) -> float:
         # Calculate the perplexity of the text given the n-gram model.
@@ -233,8 +261,8 @@ class Ngram:
         total = 0
 
         for ref, cand in zip(reference, candidate):
-            ref_tokens = word_tokenize(ref)
-            cand_tokens = word_tokenize(cand)
+            ref_tokens = self.tokenize(ref)
+            cand_tokens = self.tokenize(cand)
 
             for token in cand_tokens:
                 if token in ref_tokens:
@@ -249,8 +277,8 @@ class Ngram:
         score = 0
 
         for ref, cand in zip(reference, candidate):
-            ref_tokens = word_tokenize(ref)
-            cand_tokens = word_tokenize(cand)
+            ref_tokens = self.tokenize(ref)
+            cand_tokens = self.tokenize(cand)
 
             for i in range(1, 5):
                 ref_ngrams = self.extract_ngrams(ref_tokens, i)
@@ -270,11 +298,3 @@ class Ngram:
                 score += correct / total
 
         score /= len(reference)
-
-
-if __name__ == "__main__":
-    ngram = Ngram(3)
-    corpus = corpus_from_file("corpus.txt")
-    ngram.fit(corpus)
-    print(ngram.frequency_table)
-    print(ngram.vocav)

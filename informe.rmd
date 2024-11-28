@@ -18,25 +18,27 @@ library(ggplot2)
 
 Este trabajo implementa un modelo de lenguaje basado en n-gramas, entrenado con scripts de la serie Friends. El objetivo es generar texto nuevo que mantenga características del corpus original, analizando la calidad y coherencia de los resultados obtenidos con diferentes configuraciones del modelo.
 
-# Metodología
 
-## Corpus y Preprocesamiento
+\newpage
+
+
+# Corpus y Preprocesamiento
 
 1. Conseguir y limpiar un corpus de textos
 
 Para el trabajo se eligieron dos corpus, ambos de series Sitcoms. El primero es el corpus de la serie Seinfeld (https://github.com/luonglearnstocode/Seinfeld-text-corpus), y el segundo es el corpus de la serie Friends (https://www.kaggle.com/datasets/blessondensil294/friends-tv-series-screenplay-script). Ambos corpus fueron limpiados de caracteres especiales y se les aplicó un preprocesamiento específico para scripts, que incluye:
 
-### Corpus de Seinfeld
+## Corpus de Seinfeld
 
 El corpus de Seinfeld contiene los guiones de los episodios de la serie. Es un solo archivo de texto que contiene los diálogos de todos los episodios, alrededor de 65.000 líneas. Aunque contiene algunas separaciones por episodio, no es un corpus estructurado jerárquicamente.
 
 Para la experimentación del punto 3.1 se requirió mas textos para n-gramas de orden superior, por lo que se decidió utilizar el corpus de Friends.
 
-### Corpus de Friends
+## Corpus de Friends
 
 El corpus de Friends contiene los guiones de todos los episodios de la serie. Por cada episodio de cada temporada se contiene un archivo de texto con la estructura de guión de la serie. Cada archivo contiene los diálogos de los personajes, separados por líneas y con marcadores de inicio y fin de episodio, escena y línea de diálogo.
 
-### Preprocesamiento y Tokenización
+## Preprocesamiento y Tokenización
 
 El modelo implementa un preprocesamiento específico para scripts, que incluye:
 
@@ -54,15 +56,15 @@ Este preprocesamiento nos permite:
 - Preservar el contexto conversacional entre personajes
 
 
-## Implementación del Modelo N-gramas
+# Implementación del Modelo N-gramas
 
 El modelo implementa tres funcionalidades principales:
 
-### 1. Construcción del Modelo
+## 1. Construcción del Modelo
 
 El proceso de construcción del modelo incluye:
 
-### 2. Predicción y Generación
+## 2. Predicción y Generación
 
 El modelo puede generar texto a diferentes niveles:
 
@@ -70,7 +72,7 @@ El modelo puede generar texto a diferentes niveles:
 - b) Generación de escenas
 - c) Generación de episodios completos
 
-### 3. Control de Generación
+## 3. Control de Generación
 
 El modelo incluye varios parámetros para controlar la generación:
 
@@ -83,7 +85,7 @@ El modelo incluye varios parámetros para controlar la generación:
   - `max_sentences`: Número máximo de líneas por escena
   - `max_scenes`: Número máximo de escenas por episodio
 
-### Ejemplo de Uso
+## Ejemplo de Uso
 
 ```python
 # Inicializar y entrenar modelo
@@ -109,7 +111,9 @@ episode = model.generate_episode(
 )
 ```
 
-# 3. Resultados y Análisis
+\newpage
+
+# Resultados y Análisis
 
 ## Calidad de Textos Generados
 
@@ -129,73 +133,115 @@ En un análisis cuantitativo, podemos medir la calidad de los textos generados c
 ![Perplexity vs. Training Size - Seinfeld](figures/perplexity_vs_train_size_seinfeld.png)
 ![Perplexity vs. Training Size - Friends](figures/perplexity_vs_train_size_friends.png)
 
-En el gráfico se observa que a medida que aumenta el valor de $n$, la Perplexity crece también. Esto se debe a que el modelo se ajusta demasiado a los datos de entrenamiento, perdiendo capacidad de generalización.
+En los gráficos se observa que a medida que aumenta el valor de $n$, la Perplexity crece también. Esto se debe a que el modelo se ajusta demasiado a los datos de entrenamiento, perdiendo capacidad de generalización.
 
-### Ejemplos de Textos Generados - Seinfeld
+Además podemos ver que a medida que agrandamos la cantidad de datos de entrenamiento, la Perplexity parece aumentar inicialmente y luego disminuir. Esto puede deberse a que con más datos el modelo puede aprender mejor algún patron del lenguaje, pero también aumenta el riesgo de sobreajuste.
+
+## Ejemplos de Textos Generados - Seinfeld
 
 Para diferentes temperaturas generamos textos que comiencen con "jerry" (Seinfeld) para comparar la calidad de los textos generados (n=5).
 
-#### **T=0.3**: Texto muy determinístico en el comienzo, repite fragmentos exactos. Fijación en la expresión "i don't know".
+### **T=0.3**
 
--  i don't know what to do so i put it in a garage.
--  i don't know.
--  you know i don't get you seinfeld. you want something one day. the next day you don't have to do this! this guy is waiting in my house.
--  i don't know what to do. so i just stood there like - remember how quayle looked when benson gave him that kennedy line? that's what i looked like.
--  i don't know.
+Texto muy determinístico en el comienzo de los, repite fragmentos exactos. Fijación en la expresión "i don't know". Muy variado a la larga.
 
-#### **T=0.5**: Texto más variado, pero sigue repitiendo fragmentos como "i don't".
+-  `i don't know what to do so i put it in a garage.`
+-  `i don't know.`
+-  `you know i don't get you seinfeld. you want something one day. the next day you don't have to do this! this guy is waiting in my house.`
+-  `i don't know what to do. so i just stood there like - remember how quayle looked when benson gave him that kennedy line? that's what i looked like.`
+-  `i don't know.`
 
--  george, here's the book. don't let anybody see it. don't let anything happen to it.
--  i don't understand it. i haven't read the manual. ooh!" you get my drift.
--  i don't know and i didn't want to talk to you. goodbye.
--  what's the matter?
--  oh, i don't know. i can't think of any solution, unless of course they should meet with some unfortunate accident. what do you think of this shirt?
+### **T=0.5**
 
-#### **T=1.0**: Texto más aleatorio
+Texto más variado, pero sigue repitiendo fragmentos como "i don't".
 
--  all right, look, we're late. thank you very much...
--  ah, you're better off. now you can just let it go.
--  you think you can handle that, numb nuts?
--  ah..........
--  would you?
+-  `george, here's the book. don't let anybody see it. don't let anything happen to it.`
+-  `i don't understand it. i haven't read the manual. ooh!" you get my drift.`
+-  `i don't know and i didn't want to talk to you. goodbye.`
+-  `what's the matter?`
+-  `oh, i don't know. i can't think of any solution,` 
+`unless of course they should meet with some unfortunate accident. what do you think of this shirt?`
 
-### Ejemplos de Textos Generados - Friends
+### **T=1.0**
+
+Texto más parecido al corpus
+
+-  `all right, look, we're late. thank you very much...`
+-  `ah, you're better off. now you can just let it go.`
+-  `you think you can handle that, numb nuts?`
+-  `ah..........`
+-  `would you?`
+
+### Generación de Guión Generando Lineas de Dialogo
+
+Un caso de uso curioso es generar varias lineas de dialogo y encadenarlas. En el caso de Seinfeld, por la naturaleza del programa de televisión, algunos ejemplos de generaciones podrían pasar por dialogo extraído de una escena del estilo de la serie.
+
+```
+postal worker danny: why start now?
+jerry: you don't understand, i haven't been together with rachel for like three weeks. 
+first i was on the road, then my parents show up, i'm getting a little uncomfortable 
+jerry: hi. can i use your place? i got a bunch of friends coming over this weekend.
+george: yeah my parents have it. sometimes it skips a generation.
+salesman: (angry) all you people with hair think you're so damn superior! 
+you have no idea how sick i am of running around town looking for socks.
+```
+
+Cuando comparamos esto con lineas del corpus, pudimos hallar las siguientes:
+
+- `POSTAL WORKER DANNY: Why start now?`
+- `JERRY: You don't understand, I haven't been together with Rachel for like three weeks. First I was on the road, then my parents show up, I'm getting a little uh backed up.`
+- `GEORGE: Yeah my parents have it. Sometimes it skips a generation.`
+- `SALESMAN: (angry) All you people with hair think you're so damn superior!` 
+`You have no idea what it's like. You ever look down in the bottom of your tub and see a fist` `fulla hair? How'd you like to start your day with that?! (looks ready to punch Jerry)`
+
+En algunos casos se repitió gran parte de una linea del corpus, sin embargo aquellas partes que no son repetidas parecieran tener coherencia en la misma linea. Y por esto mencionado de la forma de dialogo en la serie, las lineas juntas podrían ser un dialogo de la serie en sí. 
+
+## Ejemplos de Textos Generados - Friends
 
 Cuando repetimos el mismo experimento con el corpus de Friends, observamos resultados similares.
 
-#### **T=0.3**: Texto muy determinístico, repite fragmentos exactos, exactamente igual que en Seinfeld dos veces figura "i don't know". Otras dos veces figura "oh my god".
+### **T=0.3**
 
--  well, i was hoping after tonight that maybe i could you know…
--  i don't know, but uh, did you guys wrestle?
--  oh my god, you’re right! i am too late; they’re sitting on the couch and ross is sitting on the couch and ross is sitting on the couch a
--  oh my god, it's all so elegant! when's the dirty stuff starting?
--  i don't know, but i.. look, even if she shoots me down, at least i won't spend the rest of my life with you.
+Texto muy determinístico, repite fragmentos exactos, exactamente igual que en Seinfeld dos veces figura "i don't know". Otras dos veces figura "oh my god". La frase "sitting on the couch" se repite 3 veces textual en una de las generaciones. Cuando diverge del n-grama mas probable, varía mucho la generación.
 
-#### **T=0.5**: Texto más variado nuevamente, en este caso pasa a repetir "all right".
--  all right.
--  all right, i guess i'll have my stuff packed up.
--  well, i was thinking that maybe we could go on a date with jean-claude van damme. can you beat up that guy?
--  so you're ruling out surrogacy?
--  yeah, i know exactly what i’m talking about.
+-  `well, i was hoping after tonight that maybe i could you know…`
+-  `i don't know, but uh, did you guys wrestle?`
+-  `oh my god, you’re right! i am too late; they’re sitting on the couch and ross is sitting on the couch and ross is sitting on the couch a`
+-  `oh my god, it's all so elegant! when's the dirty stuff starting?`
+-  `i don't know, but i.. look, even if she shoots me down, at least i won't spend the rest of my life with you.`
 
-#### **T=1.0**: Texto más aleatorio
--  wow, that’s in like 20 minutes. you’d better get dressed.
--  it was, yeah. i kind of don't want it to be amazing.
--  yeah. listen uh, i’d prefer it if you didn’t call me joey. since i don’t know anyone here, i thought it’d be cool to try out a cool work nick
--  you call that delicious?
--  uh well yeah, that was the plan, but by the time i was 31!
+### **T=0.5**
+
+Texto más variado nuevamente, en este caso pasa a repetir "all right".
+-  `all right.`
+-  `all right, i guess i'll have my stuff packed up.`
+-  `well, i was thinking that maybe we could go on a date with jean-claude van damme. can you beat up that guy?`
+-  `so you're ruling out surrogacy?`
+-  `yeah, i know exactly what i’m talking about.`
+
+### **T=1.0**
+
+Texto más parecido al corpus.
+-  `wow, that’s in like 20 minutes. you’d better get dressed.`
+-  `it was, yeah. i kind of don't want it to be amazing.`
+-  `yeah. listen uh, i’d prefer it if you didn’t call me joey. since i don’t know anyone here, i thought it’d be cool to try out a cool work nick`
+-  `you call that delicious?`
+-  `uh well yeah, that was the plan, but by the time i was 31!`
 
 En el caso del corpus de Friends, lo que podemos realizar es escribir escenas completas.
 
-### Ejemplo de Escena Generada - Friends
+## Ejemplo de Escena Generada - Friends
 
 Podemos comenzar una escena por ejemplo con "[Scene: Central", y el modelo completará la escena.
 
 ```
     [Scene: Central perk, chandler and monica are sitting on the couch as rachel enters.]
-    chandler: no, you keep the old ones in the back, that is so sweet! oh, i can’t believe it! make the presents! make the presents!
+    chandler: no, you keep the old ones in the back, that is so sweet! 
+    oh, i can’t believe it! make the presents! make the presents!
     rachel: you know what i don't have?
-    monica: the fuzzy little mints at the bottom of the page. then again, maybe it isn't and it's just ridiculous, and it's like, it's like, all of a sudden my roommate, rachel.
+    monica: the fuzzy little mints at the bottom of the page. 
+    then again, maybe it isn't and it's just ridiculous, 
+    and it's like, it's like, all of a sudden my roommate, rachel.
     rachel: oh my god! that is our friend! (monica covers her eyes in shock.)
     monica: oh my god, what the hell is in that first kiss.
     rachel: oh my god.
@@ -207,9 +253,9 @@ A pesar de tener algo de "forma", las oraciones son generadas independiente por 
 
 ### Ejemplo de Episodio Completo Generado - Friends
 
-Adjuntamos en el anexo un ejemplo de episodio completo generado por el modelo, comenzando con el título "The One with the". Al igual que lo observado en las escenas, las líneas de diálogo generadas no tienen coherencia entre sí, y la trama del episodio entre las escenas es incoherente también.
+Adjuntamos en el anexo un ejemplo de episodio completo generado por el modelo, comenzando con el título "The One with the", como suelen nombrarse los episodios de Friends. Al igual que lo observado en las escenas, las líneas de diálogo generadas no tienen coherencia entre sí, y la trama del episodio entre las escenas es incoherente también.
 
-## 3.3 Análisis del Grado de Creatividad e Inteligencia
+## Análisis del Grado de Creatividad e Inteligencia
 
 ### Grado de Creatividad
 

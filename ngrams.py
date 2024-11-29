@@ -151,7 +151,7 @@ class Ngram:
         logits = self.frequency_table[n_minus_1_gram]
         return logits
 
-    def generate(
+    def generate_line(
         self, context: Tuple[str] = "", temperature: float = 0.9, max_length=30
     ) -> str:
         '''
@@ -189,7 +189,7 @@ class Ngram:
     def generate_scene(self, context: Tuple[str] = "", temperature: float = 0.9, max_sentences=10) -> str:
         scene = context
         while SCENE_END not in scene and max_sentences > 0: 
-            sentence = self.generate(context, temperature)
+            sentence = self.generate_line(context, temperature)
             if SCENE_START in sentence:
                 break
             scene += sentence
@@ -202,7 +202,7 @@ class Ngram:
         return self.clean_text(scene)
 
     def generate_title(self, temperature: float = 0.9) -> str:
-        title = self.generate("The One with the", temperature, 4)
+        title = self.generate_line("The One with the", temperature, 4)
         return EPISODE_START + "The One with the" + title
 
     def generate_episode(self, context: Tuple[str] = "", temperature: float = 0.9, max_scenes=10, max_lines_per_scene=10) -> str:
